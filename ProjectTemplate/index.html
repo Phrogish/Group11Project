@@ -28,6 +28,44 @@
 				}
 			});
 		}
+		//login function
+        function login() {
+            $("#errorMessage").text("");
+
+            var webMethod = "ProjectServices.asmx/Login";
+
+            var parameters = JSON.stringify({
+                email: $("#email").val(),
+                password: $("#password").val()
+            });
+
+            $.ajax({
+                type: "POST",
+                url: webMethod,
+                data: parameters,
+                contentType: "application/json; charset=utf-8",
+                dataType: "json",
+                success: function (msg) {
+
+                    var result = msg.d;
+
+                    if (result.success) {
+						//redirecting to home page after logging in successfully
+						window.location.href = "home.html";
+
+                        
+                    }
+                    else {
+                        $("#errorMessage").text(result.message);
+                    }
+                },
+                error: function (e) {
+                    console.log(e);
+                    $("#errorMessage").text("Server error — please try again.");
+                }
+            });
+		}
+
 	</script>
 	<!--END OF YOUR OWN JAVASCRIPT-->
 
@@ -39,5 +77,21 @@
 </head >
 <body>
 	<button onclick="javascript: TestButtonHandler();">Click here to test connection!</button>
+	<!-- adding some login inputs-->
+	<hr>
+
+	<h2>Employee Login</h2>
+
+	<input id="email" type="text" placeholder="Email" />
+	<br><br>
+
+	<input id="password" type="password" placeholder="Password" />
+	<br><br>
+
+	<button onclick="login()">Login</button>
+
+	<div id="errorMessage"
+		 style="color:red; margin-top:10px;">
+	</div>
 </body>
 </html >
