@@ -256,6 +256,144 @@ namespace ProjectTemplate
             }
         }
 
+// ===================== DAILY PULSE CHECK =====================
+
+public class PulseStatusResult
+{
+    public bool loggedIn { get; set; }
+    public bool shouldShow { get; set; }
+    public string message { get; set; }
+}
+
+[WebMethod(EnableSession = true)]
+public PulseStatusResult GetDailyPulseStatus()
+{
+    if (Session["userId"] == null)
+    {
+        return new PulseStatusResult
+        {
+            loggedIn = false,
+            shouldShow = false,
+            message = "Not logged in"
+        };
+    }
+
+    int userId = (int)Session["userId"];
+
+    using (MySqlConnection con = new MySqlConnection(getConString()))
+    using (MySqlCommand cmd = new MySqlCommand(@"
+        SELECT COUNT(*)
+        FROM daily_pulse
+        WHERE employee_id = @id AND response_date = CURDATE();
+    ", con))
+    {
+        cmd.Parameters.AddWithValue("@id", userId);
+        con.Open();
+
+        int count = Convert.ToInt32(cmd.ExecuteScalar());
+
+        return new PulseStatusResult
+        {
+            loggedIn = true,
+            shouldShow = (count == 0),
+            message = (count == 0) ? "Pulse check pending" : "Already submitted today"
+        };
+    }
+}
+
+public class SubmitPulseResult
+{
+    public bool success { get; set; }
+    public string message { get; set; }
+    public int newPoints { get; set; }
+}
+
+[WebMethod(EnableSession = true)]
+public SubmitPulseResult SubmitDailyPulse(string mood)
+{
+    if (Session["userId"] == null)
+        return new SubmitPulseResult { success = false, message = "Not logged in" };
+
+    int userId = (int)Session["userId"];
+
+    // store emoji itself OR a short label like "happy"
+    if (string.IsNullOrWhiteSpace(mood) || mood.Length > 16)
+        return new SubmitPulseResult { success = false, message = "Invalid mood" };
+
+    using (MySqlConnection con = new MySqlConnection(getConString()))
+    {
+        con.Open();
+
+        using (MySqlTransaction tx = con.BeginTransaction())
+        {
+            try
+            {
+                // Insert today's pulse 
+                using (MySqlCommand insert = new MySqlCommand(@"
+                    INSERT INTO daily_pulse (employee_id, mood, response_date)
+                    VALUES (@id, @mood, CURDATE());
+                ", con, tx))
+                {
+                    insert.Parameters.AddWithValue("@id", userId);
+                    insert.Parameters.AddWithValue("@mood", mood);
+                    insert.ExecuteNonQuery();
+                }
+
+                // +5 points
+                using (MySqlCommand award = new MySqlCommand(@"
+                    UPDATE employees
+                    SET points = points + 5
+                    WHERE employee_id = @id;
+                ", con, tx))
+                {
+                    award.Parameters.AddWithValue("@id", userId);
+                    award.ExecuteNonQuery();
+                }
+
+                // Get updated points
+                int points;
+                using (MySqlCommand getPts = new MySqlCommand(@"
+                    SELECT points FROM employees WHERE employee_id = @id;
+                ", con, tx))
+                {
+                    getPts.Parameters.AddWithValue("@id", userId);
+                    points = Convert.ToInt32(getPts.ExecuteScalar());
+                }
+
+                tx.Commit();
+
+                return new SubmitPulseResult
+                {
+                    success = true,
+                    message = "Thanks! +5 points.",
+                    newPoints = points
+                };
+            }
+            catch (MySqlException ex)
+            {
+                tx.Rollback();
+
+                // Most common error: duplicate submit (because unique key)
+                if (ex.Message.ToLower().Contains("duplicate"))
+                {
+                    return new SubmitPulseResult
+                    {
+                        success = false,
+                        message = "You already submitted today's pulse."
+                    };
+                }
+
+                return new SubmitPulseResult { success = false, message = "DB error: " + ex.Message };
+            }
+            catch (Exception ex)
+            {
+                tx.Rollback();
+                return new SubmitPulseResult { success = false, message = "Server error: " + ex.Message };
+            }
+        }
+    }
+}
+
         [WebMethod(EnableSession = true)]
         public bool Logout()
         {
