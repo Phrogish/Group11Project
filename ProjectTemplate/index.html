@@ -1,38 +1,35 @@
 ﻿<!DOCTYPE html>
 <html>
 <head>
-	<meta charset="utf-8" />
-	<title></title>
-	<!--DO NOT FORGET THIS SCRIPT TAG SO YOU CAN USE JQUERY!!!!!-->
-	<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+    <meta charset="utf-8" />
+    <title>Employee Login</title>
 
-	<!--YOUR OWN JAVASCRIPT CAN GO RIGHT HERE-->
-	<script type="text/javascript">
-		function TestButtonHandler() {
-			var webMethod = "ProjectServices.asmx/TestConnection";
-			var parameters = "{}";
+    <!-- jQuery (REQUIRED) -->
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
 
-			//jQuery ajax method
-			$.ajax({
-				type: "POST",
-				url: webMethod,
-				data: parameters,
-				contentType: "application/json; charset=utf-8",
-				dataType: "json",
-				success: function (msg) {
-					var responseFromServer = msg.d;
-					alert(responseFromServer);
-				},
-				error: function (e) {
-					alert("this code will only execute if javascript is unable to access the webservice");
-				}
-			});
-		}
-		//login function
+    <script type="text/javascript">
+
+        // TEST DATABASE CONNECTION
+        function TestButtonHandler() {
+            $.ajax({
+                type: "POST",
+                url: "ProjectServices.asmx/TestConnection",
+                data: "{}",
+                contentType: "application/json; charset=utf-8",
+                dataType: "json",
+                success: function (msg) {
+                    alert(msg.d);
+                },
+                error: function (xhr) {
+                    console.log(xhr);
+                    alert("Cannot reach webservice (" + xhr.status + "): " + xhr.responseText);
+                }
+            });
+        }
+
+        // LOGIN FUNCTION
         function login() {
             $("#errorMessage").text("");
-
-            var webMethod = "ProjectServices.asmx/Login";
 
             var parameters = JSON.stringify({
                 email: $("#email").val(),
@@ -41,57 +38,49 @@
 
             $.ajax({
                 type: "POST",
-                url: webMethod,
+                url: "ProjectServices.asmx/Login",
                 data: parameters,
                 contentType: "application/json; charset=utf-8",
                 dataType: "json",
-                success: function (msg) {
 
+                success: function (msg) {
                     var result = msg.d;
 
                     if (result.success) {
-						//redirecting to home page after logging in successfully
-						window.location.href = "home.html";
-
-                        
-                    }
-                    else {
+                        window.location.href = "home.html";
+                    } else {
                         $("#errorMessage").text(result.message);
                     }
                 },
-                error: function (e) {
-                    console.log(e);
-                    $("#errorMessage").text("Server error — please try again.");
+
+                error: function (xhr) {
+                    console.log(xhr);
+                    $("#errorMessage").text(
+                        "Server error (" + xhr.status + "): " + xhr.responseText
+                    );
                 }
             });
-		}
+        }
 
-	</script>
-	<!--END OF YOUR OWN JAVASCRIPT-->
+    </script>
+</head>
 
-	<!--AND YOUR OWN CSS CAN GO HERE AS WELL-->
-	<style>
-
-	</style>
-	<!--END OF YOUR OWN CSS-->
-</head >
 <body>
-	<button onclick="javascript: TestButtonHandler();">Click here to test connection!</button>
-	<!-- adding some login inputs-->
-	<hr>
 
-	<h2>Employee Login</h2>
+    <button onclick="TestButtonHandler()">Click here to test connection!</button>
+    <hr>
 
-	<input id="email" type="text" placeholder="Email" />
-	<br><br>
+    <h2>Employee Login</h2>
 
-	<input id="password" type="password" placeholder="Password" />
-	<br><br>
+    <input id="email" type="text" placeholder="Email" />
+    <br><br>
 
-	<button onclick="login()">Login</button>
+    <input id="password" type="password" placeholder="Password" />
+    <br><br>
 
-	<div id="errorMessage"
-		 style="color:red; margin-top:10px;">
-	</div>
+    <button onclick="login()">Login</button>
+
+    <div id="errorMessage" style="color:red; margin-top:10px;"></div>
+
 </body>
-</html >
+</html>
