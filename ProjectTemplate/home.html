@@ -13,22 +13,27 @@
 
     <button onclick="logout()">Logout</button>
 
+    <!-- button for registering new employees for the admins-->
+    <button id="adminRegisterBtn" style="display:none;" onclick="goToRegister()">
+        Register New Employee
+    </button>
+
     <!-- DAILY PULSE POPUP (HTML MUST BE OUTSIDE <script>) -->
     <div id="pulseOverlay" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,.45); z-index:9999;">
-      <div style="background:white; width:340px; margin:12% auto; padding:18px; border-radius:12px; text-align:center; font-family:Arial;">
-        <h3 style="margin-top:0;">How are you feeling today?</h3>
-        <p style="margin-top:4px; color:#555;">Select one emoji to submit</p>
+        <div style="background:white; width:340px; margin:12% auto; padding:18px; border-radius:12px; text-align:center; font-family:Arial;">
+            <h3 style="margin-top:0;">How are you feeling today?</h3>
+            <p style="margin-top:4px; color:#555;">Select one emoji to submit</p>
 
-        <div style="display:flex; justify-content:space-between; gap:10px; margin:14px 0;">
-          <button class="pulseEmoji" data-mood="😄" style="font-size:26px; padding:10px; border-radius:10px;">😄</button>
-          <button class="pulseEmoji" data-mood="🙂" style="font-size:26px; padding:10px; border-radius:10px;">🙂</button>
-          <button class="pulseEmoji" data-mood="😐" style="font-size:26px; padding:10px; border-radius:10px;">😐</button>
-          <button class="pulseEmoji" data-mood="😕" style="font-size:26px; padding:10px; border-radius:10px;">😕</button>
-          <button class="pulseEmoji" data-mood="😠" style="font-size:26px; padding:10px; border-radius:10px;">😠</button>
+            <div style="display:flex; justify-content:space-between; gap:10px; margin:14px 0;">
+                <button class="pulseEmoji" data-mood="😄" style="font-size:26px; padding:10px; border-radius:10px;">😄</button>
+                <button class="pulseEmoji" data-mood="🙂" style="font-size:26px; padding:10px; border-radius:10px;">🙂</button>
+                <button class="pulseEmoji" data-mood="😐" style="font-size:26px; padding:10px; border-radius:10px;">😐</button>
+                <button class="pulseEmoji" data-mood="😕" style="font-size:26px; padding:10px; border-radius:10px;">😕</button>
+                <button class="pulseEmoji" data-mood="😠" style="font-size:26px; padding:10px; border-radius:10px;">😠</button>
+            </div>
+
+            <div id="pulseMsg" style="min-height:20px; color:#333;"></div>
         </div>
-
-        <div id="pulseMsg" style="min-height:20px; color:#333;"></div>
-      </div>
     </div>
 
     <script>
@@ -49,6 +54,10 @@
                         $("#userInfo").text("User ID: " + result.userId + " | Role: " + result.role);
                         loadPoints();
                         checkDailyPulse(); // ✅ show popup if user hasn't answered today
+                    }
+                    // Show admin button if user is an admin
+                    if ((result.role || "").toLowerCase() === "admin") {
+                        $("#adminRegisterBtn").show();
                     }
                 },
                 error: function (e) {
@@ -121,6 +130,10 @@
                 }
             });
         }
+        //using function to use the button for admins to register html page
+        function goToRegister() {
+            window.location.href = "register.html";
+        }
 
         // When an emoji is clicked, submit pulse + award points
         $(document).on("click", ".pulseEmoji", function () {
@@ -147,6 +160,7 @@
                     $("#pulseMsg").text("Error submitting. Please try again.");
                 }
             });
+            
         });
     </script>
 

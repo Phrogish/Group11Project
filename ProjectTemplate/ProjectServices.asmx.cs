@@ -59,6 +59,102 @@ namespace ProjectTemplate
             public bool isLocked { get; set; }
             public int remainingAttempts { get; set; }
         }
+        //creaing class for register result (registering new employees)
+        public class RegisterResult
+        {
+            public bool success { get; set; }
+            public string message { get; set; }
+            public int newEmployeeId { get; set; }
+        }
+        //webethod for registering new employees,only accessible by admins
+        [WebMethod(EnableSession = true)]
+        public RegisterResult RegisterEmployee(string email, string password, string role)
+        {
+            RegisterResult resp = new RegisterResult { success = false, newEmployeeId = 0 };
+
+            //if condition to make sure you are logged in
+            if (Session["userId"] == null)
+            {
+                resp.message = "Not logged in.";
+                return resp;
+            }
+
+            // if condition checking that you must be an admin
+            string sessionRole = (string)Session["role"];
+            if (sessionRole == null || sessionRole.ToLower() != "admin")
+            {
+                resp.message = "Unauthorized. Admins only.";
+                return resp;
+            }
+
+            // validation of value inputs
+            email = (email ?? "").Trim().ToLower();
+            password = (password ?? "").Trim();
+            role = (role ?? "employee").Trim().ToLower();
+
+            if (email.Length == 0 || !email.Contains("@"))
+            {
+                resp.message = "Please enter a valid email.";
+                return resp;
+            }
+
+            if (password.Length < 8)
+            {
+                resp.message = "Password must be at least 8 characters.";
+                return resp;
+            }
+
+            if (role != "employee" && role != "admin")
+            {
+                resp.message = "Role must be employee or admin.";
+                return resp;
+            }
+
+            try
+            {
+                using (MySqlConnection con = new MySqlConnection(getConString()))
+                {
+                    con.Open();
+
+                    // making sure there are no duplicates
+                    using (MySqlCommand check = new MySqlCommand(
+                        "SELECT COUNT(*) FROM employees WHERE email = @email;", con))
+                    {
+                        check.Parameters.AddWithValue("@email", email);
+                        int exists = Convert.ToInt32(check.ExecuteScalar());
+                        if (exists > 0)
+                        {
+                            resp.message = "That email is already registered.";
+                            return resp;
+                        }
+                    }
+
+                    // inserting new employee and adding the default points and values
+                    using (MySqlCommand cmd = new MySqlCommand(@"
+                INSERT INTO employees (email, password, role, points, failed_attempts, is_locked, last_login_point_date)
+                VALUES (@email, @password, @role, 0, 0, 0, NULL);
+                SELECT LAST_INSERT_ID();", con))
+                    {
+                        cmd.Parameters.AddWithValue("@email", email);
+                        cmd.Parameters.AddWithValue("@password", password);
+                        cmd.Parameters.AddWithValue("@role", role);
+
+                        resp.newEmployeeId = Convert.ToInt32(cmd.ExecuteScalar());
+                    }
+
+                    resp.success = true;
+                    resp.message = "Employee registered successfully.";
+                    return resp;
+                }
+            }
+            catch (Exception e)
+            {
+                resp.message = "Server error: " + e.Message;
+                return resp;
+            }
+        }
+
+
 
         [WebMethod(EnableSession = true)]
         public LoginResult Login(string email, string password)
